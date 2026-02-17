@@ -1,0 +1,7 @@
+{
+  "name": "Language Tutor",
+  "description": "A sophisticated multi-language learning application using the Acquire, Practice, Adjust (APA) method. Support for English (US/UK), French, and Spanish with detailed pronunciation analytics.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
