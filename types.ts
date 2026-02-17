@@ -83,6 +83,7 @@ export type TargetAudience = 'child' | 'adult';
 export interface SessionConfig {
   level: ProficiencyLevel;
   audience: TargetAudience;
+  voice: TutorVoice;
 }
 
 export interface SavedSession {

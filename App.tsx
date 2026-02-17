@@ -41,7 +41,8 @@ const App: React.FC = () => {
   // New Features Config
   const [sessionConfig, setSessionConfig] = useState<SessionConfig>({
     level: 'beginner',
-    audience: 'adult'
+    audience: 'adult',
+    voice: 'Zephyr'
   });
   const [isSetupMode, setIsSetupMode] = useState(false);
 
@@ -98,6 +99,7 @@ const App: React.FC = () => {
     const sid = Date.now().toString();
     setCurrentSessionId(sid);
     setIsSetupMode(false);
+    setSelectedVoice(sessionConfig.voice); // Sync voice selection
     
     setIsTyping(true);
     let greetingText = INITIAL_GREETINGS[selectedLanguageId];
@@ -113,7 +115,7 @@ const App: React.FC = () => {
 
     try {
       await new Promise(r => setTimeout(r, 600));
-      const audioData = await gemini.generateSpeech(greetingText, selectedVoice);
+      const audioData = await gemini.generateSpeech(greetingText, sessionConfig.voice);
       setMessages([{
         id: 'init-' + Date.now(),
         role: 'assistant',
@@ -137,7 +139,10 @@ const App: React.FC = () => {
     setCurrentSessionId(session.id);
     setSelectedLanguageId(session.languageId);
     setMessages(session.messages);
-    if(session.config) setSessionConfig(session.config);
+    if(session.config) {
+        setSessionConfig(session.config);
+        setSelectedVoice(session.config.voice);
+    }
     setShowHistory(false);
     setIsSetupMode(false);
   };
@@ -348,12 +353,34 @@ const App: React.FC = () => {
 
         {isSetupMode ? (
           /* SETUP VIEW */
-          <div className="flex-1 flex flex-col items-center justify-center p-8 z-30 animate-in fade-in zoom-in-95 duration-500">
-             <div className="max-w-xl w-full">
+          <div className="flex-1 overflow-y-auto z-30 animate-in fade-in zoom-in-95 duration-500 bg-[#FDFBF7]/50 backdrop-blur-sm">
+             <div className="min-h-full flex flex-col items-center justify-center p-6 md:p-12">
+                 <div className="max-w-xl w-full">
                 <h2 className="text-3xl md:text-5xl font-serif text-[#1A1C20] mb-2 text-center">Customize Your Lesson</h2>
                 <p className="text-center text-slate-500 mb-10">Tailor the AI persona to your needs.</p>
 
                 <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-8">
+                   
+                   {/* Voice Selection */}
+                   <div>
+                      <label className="text-xs font-bold text-[#C5A059] uppercase tracking-[0.2em] mb-4 block">Tutor Voice</label>
+                      <div className="grid grid-cols-2 gap-4">
+                        {AVAILABLE_VOICES.map(v => (
+                           <button 
+                              key={v.id}
+                              onClick={() => setSessionConfig(prev => ({...prev, voice: v.id}))}
+                              className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${sessionConfig.voice === v.id ? 'border-[#C5A059] bg-[#FDFBF7] text-[#1A1C20] shadow-sm' : 'border-slate-50 text-slate-400 hover:border-slate-100'}`}
+                           >
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-1 ${sessionConfig.voice === v.id ? 'bg-[#C5A059] text-white' : 'bg-slate-100'}`}>
+                                 <Volume2 size={18} />
+                              </div>
+                              <span className="font-bold text-sm">{v.label}</span>
+                              <span className="text-[10px] uppercase tracking-wider opacity-70">{v.gender} • {v.description}</span>
+                           </button>
+                        ))}
+                      </div>
+                   </div>
+
                    {/* Audience Selection */}
                    <div>
                       <label className="text-xs font-bold text-[#C5A059] uppercase tracking-[0.2em] mb-4 block">Target Audience</label>
@@ -408,6 +435,7 @@ const App: React.FC = () => {
                    </button>
                 </div>
              </div>
+           </div>
           </div>
         ) : !currentSessionId && messages.length === 0 ? (
           /* Empty State (Welcome) */
