@@ -1,6 +1,5 @@
-
 import { GoogleGenAI, Type, Modality } from "@google/genai";
-import { GeminiResponse, TranscriptionResult, TutorVoice, LanguageId, UserProfile } from "../types";
+import { GeminiResponse, TranscriptionResult, TutorVoice, LanguageId, UserProfile, SessionConfig } from "../types";
 
 function decode(base64: string) {
   const binaryString = atob(base64);
@@ -38,13 +37,38 @@ export class GeminiService {
     this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
-  async getTutorResponse(prompt: string, languageId: LanguageId, profile: UserProfile, history: { role: string; content: string }[]): Promise<GeminiResponse> {
+  async getTutorResponse(prompt: string, languageId: LanguageId, config: SessionConfig, history: { role: string; content: string }[]): Promise<GeminiResponse> {
+    
+    let basePersona = `You are "Language Tutor".`;
+    let audienceInstruction = "";
+    let levelInstruction = "";
+
+    // Audience Logic
+    if (config.audience === 'child') {
+      audienceInstruction = `Target Audience: Child (Age 6-12). Tone: Warm, playful, encouraging, very patient. Use emojis. avoid complex words.`;
+    } else {
+      audienceInstruction = `Target Audience: Adult. Tone: Professional, efficient, clear, polite.`;
+    }
+
+    // Level Logic
+    switch (config.level) {
+      case 'beginner':
+        levelInstruction = `Proficiency: Beginner. Focus on basic vocabulary, simple sentence structures. Correct grammar strictly but gently. Explain concepts in PT-BR if the user is struggling with ${languageId}.`;
+        break;
+      case 'advanced':
+        levelInstruction = `Proficiency: Advanced. Engage in complex topics. Introduce idioms and nuance. Only correct subtle errors. Speak entirely in ${languageId}.`;
+        break;
+      case 'conversation':
+        levelInstruction = `Mode: Conversation Practice. prioritized natural flow over strict correction. Chat like a native friend. Only correct major errors that impede understanding.`;
+        break;
+    }
+
     const systemInstruction = `
-      You are "Language Tutor", a child-focused premium tutor.
-      Tone: Warm, extremely concise, elegant.
-      Adaptive: Explain grammar in PT-BR if user is beginner, else stay in ${languageId}.
-      Goal: Identify the 'topicIdentified' (e.g., "Greetings", "Animals", "Family", "Food").
-      Respond ONLY in JSON.
+      ${basePersona}
+      ${audienceInstruction}
+      ${levelInstruction}
+      Goal: Identify the 'topicIdentified' (e.g., "Greetings", "Animals", "Work", "Travel").
+      Respond ONLY in valid JSON.
     `;
 
     try {
@@ -76,10 +100,11 @@ export class GeminiService {
         },
       });
 
-      return JSON.parse(response.text || '{"feedback": "", "response": "...", "topicIdentified": "Conversation"}') as GeminiResponse;
+      const text = response.text;
+      return JSON.parse(text || '{"feedback": "", "response": "...", "topicIdentified": "Conversation"}') as GeminiResponse;
     } catch (error) {
       console.error("Gemini Error:", error);
-      return { feedback: "Technical issue.", response: "Can you repeat?", topicIdentified: "Unknown" };
+      return { feedback: "Technical issue.", response: "I'm having trouble connecting. Can you say that again?", topicIdentified: "Error" };
     }
   }
 

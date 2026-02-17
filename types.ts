@@ -77,9 +77,18 @@ export interface GeminiResponse {
   topicIdentified?: string;
 }
 
+export type ProficiencyLevel = 'beginner' | 'advanced' | 'conversation';
+export type TargetAudience = 'child' | 'adult';
+
+export interface SessionConfig {
+  level: ProficiencyLevel;
+  audience: TargetAudience;
+}
+
 export interface SavedSession {
   id: string;
   languageId: LanguageId;
+  config: SessionConfig;
   messages: ChatMessage[];
   userProfile: UserProfile;
   lastModified: number;
